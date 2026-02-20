@@ -360,31 +360,41 @@ async fn analyze_page(app: AppHandle, state: State<'_, AppState>, url: String) -
     };
 
     // ── MERGE results from both scrapers (deduplicate by NORMALIZED URL) ──
-    // Normalize URLs to collapse resolution variants (e.g., _cc_ft_384 vs _cc_ft_768)
     fn normalize_image_url(url: &str) -> String {
         // Strip query params and hash
         let base = url.split('?').next().unwrap_or(url).split('#').next().unwrap_or(url);
-        let mut norm = base.to_string();
-        // Strip resolution/size patterns from filenames
-        // Zillow: -cc_ft_384.jpg → .jpg
+        // Extract just the path for comparison
+        let path = if let Ok(parsed) = Url::parse(base) {
+            parsed.path().to_string()
+        } else {
+            base.to_string()
+        };
+        // Split into directory + filename
+        let last_slash = path.rfind('/').unwrap_or(0);
+        let dir = &path[..=last_slash];
+        let filename = &path[last_slash + 1..];
+        // Separate base from extension
+        let (file_base, ext) = if let Some(dot_pos) = filename.rfind('.') {
+            (&filename[..dot_pos], &filename[dot_pos..])
+        } else {
+            (filename, "")
+        };
+        // Strip ALL resolution/size patterns from the base
         let patterns = [
-            // _cc_ft_384.jpg, -cc_ft_768.webp
-            (r"[-_](cc_ft_|ft_)\d{2,4}", ""),
-            // -300x200.jpg
-            (r"-\d{2,4}x\d{2,4}", ""),
-            // _384.jpg, _768.jpg, _1536.jpg (bare resolution suffix)
-            (r"[-_]\d{3,4}(\.[a-zA-Z]+)$", "$1"),
-            // @2x.jpg
-            (r"@\dx(\.[a-zA-Z]+)$", "$1"),
-            // -scaled, -thumbnail, -small, -medium, -large
-            (r"[-_](small|medium|large|thumb|thumbnail|scaled|preview|mini|full|original)(\.[a-zA-Z]+)$", "$2"),
+            (r"[-_](cc_ft_|ft_|uncropped_scaled_within_)\d+", ""),    // Zillow
+            (r"[-_]\d{2,4}x\d{2,4}", ""),                             // -300x200
+            (r"@\dx", ""),                                              // @2x
+            (r"[-_](small|medium|large|thumb|thumbnail|scaled|preview|mini|full|original|cropped)", ""),
+            (r"[-_]\d{2,4}w?$", ""),                                   // _768, _384w, trailing numbers
+            (r"[-_]+$", ""),                                            // clean trailing separators
         ];
+        let mut cleaned = file_base.to_string();
         for (pattern, replacement) in &patterns {
             if let Ok(re) = regex_lite::Regex::new(pattern) {
-                norm = re.replace(&norm, *replacement).to_string();
+                cleaned = re.replace_all(&cleaned, *replacement).to_string();
             }
         }
-        norm
+        format!("{}{}{}", dir, cleaned, ext)
     }
 
     let mut seen_image_urls: std::collections::HashSet<String> = std::collections::HashSet::new();

@@ -24,20 +24,32 @@
         });
     }
 
-    // Normalize URL to detect duplicates even across resolutions
+    // Aggressively normalize URLs to collapse all resolution/size variants into one
     function normalizeUrl(src) {
         if (!src) return '';
         try { src = new URL(src, document.location.href).href; } catch (e) { }
-        // Strip query params, hash, trailing slashes
+        // Strip query params and hash
         let norm = src.split('?')[0].split('#')[0].replace(/\/+$/, '');
-        // Strip common resolution/size patterns from filename:
-        norm = norm
-            .replace(/[-_](cc_ft_|ft_)?\d{2,4}(x\d{2,4})?(\.\w+)$/, '$3')
-            .replace(/-\d+x\d+(\.\w+)$/, '$1')
-            .replace(/@\dx(\.\w+)$/, '$1')
-            .replace(/[-_](small|medium|large|thumb|thumbnail|scaled|preview|mini|full|original)(\.\w+)$/i, '$2')
-            .replace(/[-_]\d{2,4}w(\.\w+)$/, '$1');
-        return norm;
+        // Extract just the path (remove protocol + domain for comparison)
+        try { norm = new URL(norm).pathname; } catch (e) { }
+        // Get the filename portion
+        const lastSlash = norm.lastIndexOf('/');
+        const dir = norm.substring(0, lastSlash + 1);
+        let filename = norm.substring(lastSlash + 1);
+        // Get extension
+        const extMatch = filename.match(/\.(\w+)$/);
+        const ext = extMatch ? extMatch[0] : '';
+        let base = ext ? filename.slice(0, -ext.length) : filename;
+        // Strip ALL resolution/size patterns from the base filename:
+        base = base
+            .replace(/[-_](cc_ft_|ft_|uncropped_scaled_within_)\d+/gi, '')  // Zillow
+            .replace(/[-_]\d{2,4}x\d{2,4}/g, '')                           // -300x200
+            .replace(/@\dx/g, '')                                            // @2x
+            .replace(/[-_](small|medium|large|thumb|thumbnail|scaled|preview|mini|full|original|cropped)/gi, '')
+            .replace(/[-_]\d{3,4}w?$/g, '')                                 // _768, _384w
+            .replace(/[-_]\d{2,4}$/g, '')                                   // trailing numbers like _384
+            .replace(/[-_]+$/, '');                                          // clean trailing separators
+        return dir + base + ext;
     }
 
     async function analyze() {
