@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebScraper</title>
+
+    <style>
+        body {
+            background-color: #0d0d0d;
+            font-family: Arial, sans-serif;
+            color: #e6e6e6;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.05);
+        }
+
+        h1 {
+            text-align: center;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            font-size: 26px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            background: #2b2b2b;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #4a8cff;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: #3c74d6;
+        }
+
+        /* --- MOBILE RESPONSIVE --- */
+        @media (max-width: 600px) {
+            .input-row {
+                flex-direction: column;
+            }
+
+            input[type="text"] {
+                font-size: 18px;
+                padding: 16px;
+            }
+
+            button {
+                width: 100%;
+                padding: 16px;
+                font-size: 18px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+        }
+
+        #results {
+            margin-top: 30px;
+        }
+
+        #text-content {
+            background: #111;
+            padding: 15px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+
+        .image-grid img {
+            width: 100%;
+            border-radius: 8px;
+            border: 2px solid #333;
+        }
+
+        .image-grid a {
+            text-align: center;
+            display: block;
+            font-size: 14px;
+            margin-top: 5px;
+            color: #4a8cff;
+        }
+
+        /* Make image grid friendlier on very small screens */
+        @media (max-width: 450px) {
+            .image-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Web Scraper</h1>
+
+        <div class="input-row">
+            <input type="text" id="urlInput" placeholder="Enter website URL...">
+            <button onclick="scrape()">Scrape</button>
+        </div>
+
+        <div id="results">
+            <h3>Extracted Text</h3>
+            <div id="text-content">Scraped text will appear here...</div>
+
+            <h3>Images</h3>
+            <div id="image-grid" class="image-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        async function scrape() {
+            const url = document.getElementById("urlInput").value;
+
+            const response = await fetch("http://127.0.0.1:5001/scrape", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url })
+            });
+
+            const data = await response.json();
+
+            document.getElementById("text-content").innerText = data.text;
+
+            const imageGrid = document.getElementById("image-grid");
+            imageGrid.innerHTML = "";
+
+            data.images.forEach(img => {
+                const div = document.createElement("div");
+                div.innerHTML = `
+                    <img src="${img}" />
+                    <a href="${img}" download>Download</a>
+                `;
+                imageGrid.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

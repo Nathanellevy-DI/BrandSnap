@@ -5,9 +5,23 @@ import { Input } from "./components/Input";
 import { Results } from "./components/Results";
 import { motion, AnimatePresence } from "framer-motion";
 
+interface ImageInfo {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+}
+
+interface TextBlock {
+  tag: string;
+  text: string;
+}
+
 interface AnalysisData {
   colors: string[];
   fonts: string[];
+  images: ImageInfo[];
+  text_content: TextBlock[];
   metadata: {
     title: string;
     description: string;
@@ -129,7 +143,7 @@ function App() {
                   transition={{ delay: 0.4 }}
                   className="flex flex-wrap justify-center gap-3 mt-10"
                 >
-                  {["Color Palettes", "Font Detection", "Metadata", "JSON Export"].map((feature) => (
+                  {["Color Palettes", "Font Detection", "Images", "Text Content", "JSON Export"].map((feature) => (
                     <span key={feature} className="px-4 py-2 text-sm text-gray-500 bg-white/3 border border-white/5 rounded-full">
                       {feature}
                     </span>

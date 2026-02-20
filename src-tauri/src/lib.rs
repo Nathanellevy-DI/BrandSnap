@@ -11,9 +11,25 @@ struct PageMetadata {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
+struct ImageInfo {
+    src: String,
+    alt: String,
+    width: u32,
+    height: u32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+struct TextBlock {
+    tag: String,
+    text: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct AnalysisResult {
     colors: Vec<String>,
     fonts: Vec<String>,
+    images: Vec<ImageInfo>,
+    text_content: Vec<TextBlock>,
     metadata: PageMetadata,
 }
 
