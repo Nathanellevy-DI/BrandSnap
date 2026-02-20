@@ -230,6 +230,44 @@ async fn analyze_page(app: AppHandle, state: State<'_, AppState>, url: String) -
     })
 }
 
+/// Download an image from a URL and save it to ~/Downloads
+#[tauri::command]
+async fn download_image(url: String) -> Result<String, String> {
+    println!("Downloading image: {}", url);
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&url)
+        .header("User-Agent", "Mozilla/5.0")
+        .send()
+        .await
+        .map_err(|e| format!("Download failed: {}", e))?;
+
+    let bytes = response.bytes().await.map_err(|e| format!("Failed to read image: {}", e))?;
+
+    // Extract filename from URL
+    let parsed_url = Url::parse(&url).map_err(|e| format!("Invalid URL: {}", e))?;
+    let filename = parsed_url.path_segments()
+        .and_then(|segs| segs.last())
+        .and_then(|name| if name.is_empty() { None } else { Some(name.to_string()) })
+        .unwrap_or_else(|| "image.png".to_string());
+
+    // Save to ~/Downloads
+    let downloads_dir = dirs::download_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
+    let save_path = downloads_dir.join(&filename);
+
+    std::fs::write(&save_path, &bytes).map_err(|e| format!("Failed to save file: {}", e))?;
+
+    println!("Image saved to: {:?}", save_path);
+    Ok(save_path.to_string_lossy().to_string())
+}
+
+/// Open a URL in the system's default browser
+#[tauri::command]
+async fn open_in_browser(url: String) -> Result<(), String> {
+    open::that(&url).map_err(|e| format!("Failed to open URL: {}", e))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -237,7 +275,7 @@ pub fn run() {
         .manage(AppState {
             pending_analysis: Arc::new(Mutex::new(None)),
         })
-        .invoke_handler(tauri::generate_handler![greet, analyze_page, complete_analysis])
+        .invoke_handler(tauri::generate_handler![greet, analyze_page, complete_analysis, download_image, open_in_browser])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

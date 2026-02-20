@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { Copy, Type, ArrowLeft, Download, Palette, Globe, Image, FileText, Check, ExternalLink, Search } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -225,15 +226,36 @@ export function Results({ data, onReset }: ResultsProps) {
                                                         {copiedId === `img-${i}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                                                         {copiedId === `img-${i}` ? 'Copied!' : 'Copy URL'}
                                                     </button>
-                                                    <a
-                                                        href={img.src}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await invoke('open_in_browser', { url: img.src });
+                                                            } catch (e) {
+                                                                console.error('Failed to open URL:', e);
+                                                            }
+                                                        }}
                                                         className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white text-xs px-3 py-1.5 rounded-lg transition-all"
                                                     >
                                                         <ExternalLink className="w-3 h-3" />
                                                         Open
-                                                    </a>
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                setCopiedId(`dl-${i}`);
+                                                                const savedPath = await invoke<string>('download_image', { url: img.src });
+                                                                console.log('Saved to:', savedPath);
+                                                                setTimeout(() => setCopiedId(null), 2000);
+                                                            } catch (e) {
+                                                                console.error('Download failed:', e);
+                                                                setCopiedId(null);
+                                                            }
+                                                        }}
+                                                        className="flex items-center gap-1.5 bg-cyan-500/40 hover:bg-cyan-500/60 text-white text-xs px-3 py-1.5 rounded-lg transition-all"
+                                                    >
+                                                        {copiedId === `dl-${i}` ? <Check className="w-3 h-3" /> : <Download className="w-3 h-3" />}
+                                                        {copiedId === `dl-${i}` ? 'Saved!' : 'Download'}
+                                                    </button>
                                                 </div>
                                             </div>
                                             <div className="p-2.5">
