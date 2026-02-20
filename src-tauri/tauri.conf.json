@@ -30,8 +30,7 @@
       "nsis",
       "msi",
       "app",
-      "dmg",
-      "updater"
+      "dmg"
     ],
     "icon": [
       "icons/32x32.png",
