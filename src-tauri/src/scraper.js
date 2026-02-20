@@ -183,42 +183,8 @@
             });
         });
 
-        // 10. Scan ALL <script> tags for image URLs embedded in JSON/JS
-        // This catches sites like Zillow that store carousel images in JSON-LD or JS objects
-        document.querySelectorAll('script').forEach(script => {
-            const text = script.textContent || '';
-            if (text.length < 10 || text.length > 500000) return; // skip tiny/huge scripts
-            // Find all image URLs in the script content
-            const urlPattern = /(?:https?:)?\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|gif|webp|avif|bmp|tiff|svg)(?:\?[^\s"'<>]*)?/gi;
-            const matches = text.matchAll(urlPattern);
-            for (const match of matches) {
-                let url = match[0];
-                // Fix protocol-relative URLs
-                if (url.startsWith('//')) url = 'https:' + url;
-                // Clean up escaped slashes from JSON
-                url = url.replace(/\\\//g, '/');
-                addImage(url, '', 0, 0);
-            }
-        });
-
-        // 11. JSON-LD structured data (common for real estate, e-commerce, etc.)
-        document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
-            try {
-                const json = JSON.parse(script.textContent);
-                function extractImagesFromJson(obj) {
-                    if (!obj || typeof obj !== 'object') return;
-                    if (Array.isArray(obj)) { obj.forEach(extractImagesFromJson); return; }
-                    for (const [key, value] of Object.entries(obj)) {
-                        if (typeof value === 'string' && value.match(/\.(jpg|jpeg|png|gif|webp|avif|svg)/i)) {
-                            addImage(value, '', 0, 0);
-                        } else if (typeof value === 'object') {
-                            extractImagesFromJson(value);
-                        }
-                    }
-                }
-                extractImagesFromJson(json);
-            } catch (e) { }
-        });
+        // Log what we found for debugging
+        console.log('[BrandSnap] Unique images found:', imageList.length);
 
         data.images = imageList.slice(0, 500);
 
